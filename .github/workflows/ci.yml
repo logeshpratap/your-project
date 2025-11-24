@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
       # 1. Checkout Code
       - uses: actions/checkout@v4
 
@@ -19,29 +20,34 @@ jobs:
           python-version: "3.11"
 
       # 3. Install Dependencies
-      - run: |
+      - name: Install dependencies
+        run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # 4. Run Unit Tests + Coverage Enforcement (>=80%)
+      # 4. FIX: Set PYTHONPATH so that "src" is importable
+      - name: Set PYTHONPATH
+        run: echo "PYTHONPATH=$PWD" >> $GITHUB_ENV
+
+      # 5. Run Unit Tests + Coverage Enforcement
       - name: Run Tests with Coverage
         run: |
           pytest --cov=src --cov-report=xml
 
-      # 5. Upload Coverage Report
+      # 6. Upload Coverage Report
       - uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: coverage.xml
 
-      # 6. Run SonarCloud Analysis
+      # 7. Run SonarCloud/SonarQube Analysis
       - name: SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@v2
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_SCANNER_OPTS: "-Dsonar.python.coverage.reportPaths=coverage.xml"
 
-      # (Optional) 7. Upload SonarQube internal logs/debug
+      # 8. Upload Sonar Logs (optional but useful)
       - uses: actions/upload-artifact@v4
         with:
           name: sonar-analysis
