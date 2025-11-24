@@ -1,0 +1,48 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test-sonarqube:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout Code
+      - uses: actions/checkout@v4
+
+      # 2. Setup Python
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      # 3. Install Dependencies
+      - run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # 4. Run Unit Tests + Coverage Enforcement (>=80%)
+      - name: Run Tests with Coverage
+        run: |
+          pytest --cov=src --cov-report=xml
+
+      # 5. Upload Coverage Report
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+
+      # 6. Run SonarCloud Analysis
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarqube-scan-action@v2
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_SCANNER_OPTS: "-Dsonar.python.coverage.reportPaths=coverage.xml"
+
+      # (Optional) 7. Upload SonarQube internal logs/debug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sonar-analysis
+          path: .scannerwork/
